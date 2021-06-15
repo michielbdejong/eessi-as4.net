@@ -1,14 +1,21 @@
-FROM maven:3.8.1-jdk-11 AS build
+FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 
-ADD . $MAVEN_HOME
+WORKDIR /source
 
-WORKDIR $MAVEN_HOME
+COPY *.csproj .
 
-RUN mvn clean install -U
+RUN dotnet restore
 
-FROM tomcat as runtime
+COPY . .
 
-COPY --from=build /root/.m2/repository/com/helger/phase4/phase4-peppol-server-webapp/1.3.2-SNAPSHOT /usr/local/tomcat/webapps/phase4
+RUN dotnet publish -c release -o /app --no-restore
+
+FROM mcr.microsoft.com/dotnet/runtime:5.0
+
+WORKDIR /app
+
+COPY --from=build /app .
+
+ENTRYPOINT ["dotnet", "dotnetapp.dll"]
 
 EXPOSE 8080
-
